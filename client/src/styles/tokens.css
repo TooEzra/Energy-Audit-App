@@ -1,0 +1,35 @@
+/* Design tokens: the ONLY place colours and spacing are defined. */
+:root {
+  --color-primary: #1F7A4D;
+  --color-primary-dark: #17603b;
+  --color-primary-contrast: #ffffff;
+  --color-panel: #E8F3EC;
+  --color-warning: #F2A900;
+  --color-warning-bg: #fff4d6;
+  --color-warning-text: #5c4100;
+  --color-error: #C0392B;
+  --color-error-bg: #fdecea;
+  --color-secondary: #3B7DD8;
+  --color-success-bg: #e3f4ea;
+  --color-grey: #6b7771;
+  --color-text: #1b2a22;
+  --color-muted: #55645c;
+  --color-border: #cfdcd4;
+  --color-bg: #f5f8f6;
+  --color-surface: #ffffff;
+  --color-focus: #0b5ed7;
+  --chart-palette-1: #1F7A4D;
+  --chart-palette-2: #3B7DD8;
+  --chart-palette-3: #F2A900;
+  --chart-palette-4: #7b5ea7;
+  --chart-palette-5: #2a9d8f;
+  --chart-palette-6: #8a948f;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --nav-width: 220px;
+  --topbar-height: 56px;
+  --shadow: 0 1px 3px rgba(20, 40, 30, 0.12);
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+}

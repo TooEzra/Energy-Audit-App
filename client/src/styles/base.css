@@ -1,0 +1,22 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: var(--font); font-size: 15px; line-height: 1.45; color: var(--color-text); background: var(--color-bg); }
+h1 { font-size: 1.6rem; margin: 0 0 var(--space-4); }
+h2 { font-size: 1.2rem; margin: 0 0 var(--space-3); }
+h3 { font-size: 1.05rem; margin: 0 0 var(--space-2); }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-secondary); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--color-muted); }
+.right { text-align: right; }
+.nowrap { white-space: nowrap; }
+.row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.stack > * + * { margin-top: var(--space-4); }
+.small { font-size: 0.85rem; }
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}
