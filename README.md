@@ -87,7 +87,7 @@ flowchart TD
     Service --> Handler
     Handler --> Response[JSON Response]
     
-    Validate -->|invalid| Err[{ error, details }]
+    Validate -->|invalid| Err["{ error, details }"]
     Auth -->|no/invalid token| Unauthorized[401]
     AdminCheck -->|forbidden| Forbidden[403]
 ```
