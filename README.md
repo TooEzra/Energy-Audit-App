@@ -37,6 +37,125 @@ npm run dev                                   # API on http://localhost:4000, ap
 
 Open **http://localhost:5173**.
 
+
+### Architecture
+
+```
+energy-audit/
+├── package.json                          # root scripts only (dev, test, migrate, seed, install:all)
+├── README.md
+│
+├── client/                               # FRONTEND — React + Vite
+│   ├── package.json
+│   ├── vite.config.js                    # dev proxy: /api → http://localhost:4000
+│   └── src/
+│       ├── main.jsx                      # entry point
+│       ├── App.jsx                       # providers + route table
+│       ├── routes/
+│       │   ├── ProtectedRoute.jsx        # requires login
+│       │   └── RoleRoute.jsx             # admin only
+│       ├── context/
+│       │   └── AuthContext.jsx           # user, institution, role, login/logout
+│       ├── api/                          # ONLY place that calls fetch
+│       │   ├── client.js
+│       │   └── …                         # one file per resource
+│       ├── hooks/
+│       │   ├── useApi.js
+│       │   ├── useAuth.js
+│       │   ├── useBuildings.js
+│       │   └── useForm.js
+│       ├── pages/                        # one file per screen
+│       │   ├── Dashboard.jsx
+│       │   ├── Buildings.jsx
+│       │   ├── EnergyRecords.jsx
+│       │   ├── Equipment.jsx
+│       │   ├── Audit.jsx
+│       │   ├── Recommendations.jsx
+│       │   ├── Reports.jsx
+│       │   ├── Users.jsx
+│       │   ├── Settings.jsx
+│       │   ├── Login.jsx
+│       │   └── Register.jsx
+│       ├── components/
+│       │   ├── layout/
+│       │   │   ├── AppLayout.jsx
+│       │   │   ├── TopBar.jsx
+│       │   │   └── SideNav.jsx           # role-aware
+│       │   ├── ui/
+│       │   │   ├── Button.jsx
+│       │   │   ├── FormField.jsx
+│       │   │   ├── DataTable.jsx
+│       │   │   ├── StatusChip.jsx
+│       │   │   ├── Alert.jsx
+│       │   │   ├── ConfirmDialog.jsx
+│       │   │   ├── Spinner.jsx
+│       │   │   └── EmptyState.jsx
+│       │   ├── charts/                   # Chart.js wrappers
+│       │   │   ├── MonthlyChart.jsx
+│       │   │   ├── EuiComparison.jsx
+│       │   │   ├── EndUseChart.jsx
+│       │   │   └── TrendChart.jsx
+│       │   └── domain/
+│       │       ├── BuildingSelector.jsx
+│       │       ├── CsvImportPanel.jsx
+│       │       ├── ReconciliationPanel.jsx
+│       │       ├── AnomalyBanner.jsx
+│       │       ├── FindingForm.jsx
+│       │       ├── RecommendationCard.jsx
+│       │       └── ReportPreview.jsx
+│       ├── utils/
+│       │   ├── csvParser.js
+│       │   ├── formatters.js
+│       │   └── validators.js             # mirror server rules
+│       └── styles/
+│           ├── tokens.css                # all colours / spacing
+│           ├── base.css
+│           ├── layout.css
+│           └── components.css
+│
+└── server/                               # BACKEND — Node + Express + PostgreSQL
+    ├── package.json
+    ├── src/
+    │   ├── server.js                     # start the HTTP server
+    │   ├── app.js                        # Express setup
+    │   ├── config/
+    │   │   └── env.js                    # load + validate environment variables
+    │   ├── db/
+    │   │   ├── pool.js                   # pg Pool (non-superuser app role)
+    │   │   ├── withTenant.js             # BEGIN → set_config → fn(client) → COMMIT
+    │   │   ├── migrations/               # 001–008 plain SQL
+    │   │   │   └── …                     # tables, RLS policies, SECURITY DEFINER auth fns
+    │   │   └── seed/                     # system measures + two demo institutions
+    │   ├── middleware/
+    │   │   ├── requireAuth.js
+    │   │   ├── requireRole.js
+    │   │   ├── tenantContext.js
+    │   │   ├── validate.js
+    │   │   ├── upload.js
+    │   │   ├── rateLimit.js
+    │   │   ├── errorHandler.js
+    │   │   └── notFound.js
+    │   ├── routes/                       # HTTP only: parse → service → respond
+    │   ├── validators/                   # Zod schemas
+    │   ├── services/                     # business logic (pure functions for analysis)
+    │   ├── repositories/                 # ONLY place with SQL (tenant-scoped client)
+    │   ├── utils/
+    │   │   ├── errors.js
+    │   │   ├── asyncHandler.js
+    │   │   ├── csv.js
+    │   │   └── dates.js
+    │   └── templates/
+    │       ├── report.html
+    │       └── report.css                # rendered to PDF by Puppeteer
+    ├── uploads/
+    │   └── <institution_id>/             # finding photos + generated reports
+    └── tests/
+        ├── unit/
+        ├── api/
+        ├── isolation/
+        └── helpers/
+        ```
+
 ### Demo logins (after `npm run seed`)
 
 Password for every demo account: **`Demo1234!`** (also printed by the seed script).
