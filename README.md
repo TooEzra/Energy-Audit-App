@@ -164,7 +164,7 @@ flowchart TD
 flowchart TD
     Page[Page component] --> Hook[Custom hook<br/>useBuildings / useApi / …]
     Hook --> APILayer[api/ layer]
-    APILayer -->|fetch + credentials: include| Backend[/api/*]
+    APILayer -->|"fetch + credentials: include"| Backend["/api/*"]
     
     Backend --> Hook
     Hook --> State[Page state<br/>loading / error / data]
