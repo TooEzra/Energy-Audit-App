@@ -22,7 +22,7 @@ export default function Login() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={submit} noValidate>
-        <h1>Energy Audit</h1>
+        <h1>Wattcheck</h1>
         <p className="muted">Sign in to your institution's account.</p>
         {form.formError && <Alert variant="error">{form.formError}</Alert>}
         <FormField label="E-mail" type="email" name="email" autoComplete="username" value={form.values.email} onChange={form.onChange} error={form.errors.email} />

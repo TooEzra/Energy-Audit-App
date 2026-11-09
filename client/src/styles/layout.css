@@ -1,9 +1,10 @@
 .app-shell { display: grid; grid-template-columns: var(--nav-width) 1fr; grid-template-rows: var(--topbar-height) 1fr; grid-template-areas: "top top" "nav main"; min-height: 100%; }
-.topbar { grid-area: top; background: var(--color-primary); color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); gap: var(--space-4); }
+.topbar { grid-area: top; position: sticky; top: 0; z-index: 20; background: var(--color-primary); color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); gap: var(--space-4); }
 .topbar .brand { font-weight: 700; font-size: 1.1rem; }
 .topbar .institution { background: rgba(255, 255, 255, 0.16); padding: var(--space-1) var(--space-3); border-radius: 999px; font-weight: 600; }
 .topbar .who { display: flex; align-items: center; gap: var(--space-3); font-size: 0.9rem; }
-.sidenav { grid-area: nav; background: var(--color-primary-dark); padding: var(--space-4) 0; }
+/* Stays fixed under the top bar while the page content scrolls; scrolls on its own if the menu is taller than the window. */
+.sidenav { grid-area: nav; background: var(--color-primary-dark); padding: var(--space-4) 0; position: sticky; top: var(--topbar-height); align-self: start; height: calc(100vh - var(--topbar-height)); overflow-y: auto; }
 .sidenav ul { list-style: none; margin: 0; padding: 0; }
 .sidenav a { display: block; padding: var(--space-3) var(--space-5); color: var(--color-primary-contrast); text-decoration: none; border-left: 4px solid transparent; }
 .sidenav a:hover { background: rgba(255, 255, 255, 0.1); }

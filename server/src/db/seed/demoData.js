@@ -3,7 +3,7 @@ export const DEMO_PASSWORD = 'Demo1234!';
 
 export const DEMO_INSTITUTIONS = [
   {
-    name: 'Greenfield Technical College', currency: 'KES', maxBuildings: 5,
+    name: 'Greenfield Technical College', currency: 'KES', maxBuildings: 100,
     admin: { name: 'Amina Wanjiru', email: 'admin@greenfield.example' },
     auditor: { name: 'Brian Otieno', email: 'auditor@greenfield.example' },
     buildings: [
@@ -12,7 +12,7 @@ export const DEMO_INSTITUTIONS = [
     ],
   },
   {
-    name: 'Lakeview Community Hospital', currency: 'KES', maxBuildings: 5,
+    name: 'Lakeview Community Hospital', currency: 'KES', maxBuildings: 100,
     admin: { name: 'Grace Achieng', email: 'admin@lakeview.example' },
     auditor: { name: 'Peter Kamau', email: 'auditor@lakeview.example' },
     buildings: [

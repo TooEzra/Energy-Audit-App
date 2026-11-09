@@ -13,7 +13,7 @@ describe('buildings', () => {
 
     const list = await agent.get('/api/buildings');
     expect(list.body.items).toHaveLength(1);
-    expect(list.body.maxBuildings).toBe(5);
+    expect(list.body.maxBuildings).toBe(100);
 
     expect((await agent.get(`/api/buildings/${b.id}`)).body.name).toBe('Library');
     const patched = await agent.patch(`/api/buildings/${b.id}`).send({ floorAreaM2: 900 });
@@ -54,7 +54,7 @@ describe('buildings', () => {
     expect(third.body.error).toMatch(/limit/i);
     // cannot lower the limit under the existing count; invalid limits rejected
     expect((await agent.patch('/api/institution').send({ maxBuildings: 1 })).status).toBe(400);
-    expect((await agent.patch('/api/institution').send({ maxBuildings: 51 })).status).toBe(400);
+    expect((await agent.patch('/api/institution').send({ maxBuildings: 1001 })).status).toBe(400);
   });
 
   it('auditors can create and edit but cannot delete', async () => {

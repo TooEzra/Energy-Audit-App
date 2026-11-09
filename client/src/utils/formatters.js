@@ -15,5 +15,15 @@ export function formatMonth(key) {
 }
 export const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' }) : '');
 
-export const CATEGORY_LABELS = { lighting: 'Lighting', ac_ventilation: 'AC & ventilation', motors_pumps: 'Motors & pumps', ict: 'ICT', other: 'Other', operating_hours: 'Operating hours', practices: 'Practices' };
+export const CATEGORY_LABELS = {
+  lighting: 'Lighting', ac_ventilation: 'AC & ventilation', motors_pumps: 'Motors & pumps', ict: 'ICT', other: 'Other',
+  refrigeration: 'Refrigeration', water_heating: 'Water heating', kitchen_catering: 'Kitchen & catering', office_equipment: 'Office equipment',
+  medical_lab: 'Medical & laboratory', laundry: 'Laundry', lifts: 'Lifts & escalators', audio_visual: 'Audio-visual', workshop: 'Workshop & machinery',
+  security: 'Security systems', operating_hours: 'Operating hours', practices: 'Practices',
+};
+/** Equipment categories in display order (keep in sync with the server's CATEGORIES and migration 009). 'Other' stays last. */
+export const EQUIPMENT_CATEGORIES = [
+  'lighting', 'ac_ventilation', 'motors_pumps', 'ict', 'refrigeration', 'water_heating', 'kitchen_catering', 'office_equipment',
+  'medical_lab', 'laundry', 'lifts', 'audio_visual', 'workshop', 'security', 'other',
+];
 export const categoryLabel = (c) => CATEGORY_LABELS[c] || c;

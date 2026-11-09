@@ -16,9 +16,8 @@ import ConfirmDialog from '../components/ui/ConfirmDialog.jsx';
 import BuildingSelector from '../components/domain/BuildingSelector.jsx';
 import ReconciliationPanel from '../components/domain/ReconciliationPanel.jsx';
 import EndUseChart from '../components/charts/EndUseChart.jsx';
-import { categoryLabel, formatNumber, formatPct } from '../utils/formatters.js';
-
-const CATEGORIES = ['lighting', 'ac_ventilation', 'motors_pumps', 'ict', 'other'];
+import { categoryLabel, formatNumber, formatPct, EQUIPMENT_CATEGORIES } from '../utils/formatters.js';
+import { EQUIPMENT_CATALOG } from '../utils/equipmentCatalog.js';
 
 function EquipmentForm({ buildingId, editing, onSaved, onCancel }) {
   const form = useForm({
@@ -39,9 +38,26 @@ function EquipmentForm({ buildingId, editing, onSaved, onCancel }) {
     <form className="panel" onSubmit={submit} noValidate aria-label={editing ? 'Edit equipment' : 'Add equipment'}>
       <h2>{editing ? 'Edit equipment' : 'Add equipment'}</h2>
       {form.formError && <Alert variant="error">{form.formError}</Alert>}
+      {!editing && (
+        <FormField as="select" label="Start from common equipment (optional)" value="" hint="Pre-fills category, name and a typical rating in watts. Check the nameplate and edit anything."
+          onChange={(e) => {
+            const [cat, i] = e.target.value.split('|');
+            if (!cat) return;
+            const [name, ratingW] = EQUIPMENT_CATALOG[cat][Number(i)];
+            form.setValues((v) => ({ ...v, category: cat, name, ratingW }));
+            form.setErrors({});
+          }}>
+          <option value="">Choose…</option>
+          {EQUIPMENT_CATEGORIES.map((c) => (
+            <optgroup key={c} label={categoryLabel(c)}>
+              {EQUIPMENT_CATALOG[c].map(([n, w], i) => <option key={n} value={`${c}|${i}`}>{n} (~{formatNumber(w)} W)</option>)}
+            </optgroup>
+          ))}
+        </FormField>
+      )}
       <div className="form-grid">
         <FormField as="select" label="Category" name="category" value={form.values.category} onChange={form.onChange} error={form.errors.category}>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+          {EQUIPMENT_CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
         </FormField>
         {f('name', 'Name')}
         {f('location', 'Location')}

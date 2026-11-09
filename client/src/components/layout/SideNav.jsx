@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 
 const WORKFLOW = [
   { to: '/', label: 'Dashboard', end: true },
-  { to: '/buildings', label: 'Buildings' },
+  { to: '/buildings', label: 'Facilities' },
   { to: '/energy', label: 'Energy Records' },
   { to: '/equipment', label: 'Equipment' },
   { to: '/audit', label: 'Audit' },

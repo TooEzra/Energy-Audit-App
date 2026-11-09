@@ -27,7 +27,7 @@ function SettingsForm({ institution }) {
       <div className="form-grid">
         <FormField label="Institution name" name="name" value={form.values.name} onChange={change} error={form.errors.name} />
         <FormField label="Currency (3-letter code)" name="currency" maxLength={3} value={form.values.currency} onChange={change} error={form.errors.currency} />
-        <FormField label="Building limit (1–50)" type="number" name="maxBuildings" min={1} max={50} value={form.values.maxBuildings} onChange={change} error={form.errors.maxBuildings} />
+        <FormField label="Building limit (1–1000)" type="number" name="maxBuildings" min={1} max={1000} value={form.values.maxBuildings} onChange={change} error={form.errors.maxBuildings} />
       </div>
       <div className="form-actions"><Button type="submit" disabled={form.submitting}>{form.submitting ? 'Saving…' : 'Save settings'}</Button></div>
     </form>

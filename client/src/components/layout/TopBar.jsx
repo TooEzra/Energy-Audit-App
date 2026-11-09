@@ -10,7 +10,7 @@ export default function TopBar() {
   return (
     <header className="topbar no-print">
       <div className="row">
-        <span className="brand">Energy Audit</span>
+        <span className="brand">Wattcheck</span>
         <span className="institution" aria-label="Institution">{institution?.name}</span>
       </div>
       <div className="who">

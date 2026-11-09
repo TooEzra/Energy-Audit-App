@@ -77,6 +77,6 @@ export function validateSettings(f) {
   return clean({
     name: isBlank(f.name) ? 'Institution name is required' : undefined,
     currency: /^[A-Za-z]{3}$/.test(f.currency || '') ? undefined : 'Use a 3-letter currency code',
-    maxBuildings: !(Number.isInteger(n) && n >= 1 && n <= 50) ? 'Limit must be a whole number from 1 to 50' : undefined,
+    maxBuildings: !(Number.isInteger(n) && n >= 1 && n <= 1000) ? 'Limit must be a whole number from 1 to 1000' : undefined,
   });
 }

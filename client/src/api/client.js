@@ -1,17 +1,23 @@
 // The ONLY place that calls fetch. Cookie auth (httpOnly), JSON in/out, errors mapped to ApiError.
+
+// Production: set VITE_API_URL=https://YOUR-APP.onrender.com/api on the frontend host.
+// Local dev: leave unset so requests stay on /api and Vite proxies to localhost:4000.
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+
 export class ApiError extends Error {
   constructor(status, message, details) {
     super(message);
     this.status = status;
-    this.details = details || null; // { field: message }
+    this.details = details || null;
   }
 }
 
 async function request(method, url, body) {
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+  const path = url.startsWith('/') ? url : `/${url}`;
   let res;
   try {
-    res = await fetch(`/api${url}`, {
+    res = await fetch(`${API_BASE}${path}`, {
       method,
       credentials: 'include',
       headers: body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : undefined,
@@ -23,8 +29,9 @@ async function request(method, url, body) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    // A 401 on a data call means the session ended: tell the AuthContext (login/register calls handle their own 401).
-    if (res.status === 401 && !url.startsWith('/auth/')) window.dispatchEvent(new Event('auth:expired'));
+    if (res.status === 401 && !url.startsWith('/auth/')) {
+      window.dispatchEvent(new Event('auth:expired'));
+    }
     throw new ApiError(res.status, data?.error || `Request failed (${res.status})`, data?.details);
   }
   return data;

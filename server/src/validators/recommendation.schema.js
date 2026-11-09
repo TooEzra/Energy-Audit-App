@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CATEGORIES } from './equipment.schema.js';
 
 const money = (label) => z.coerce.number({ invalid_type_error: `${label} must be a number` }).min(0, `${label} cannot be negative`);
 const status = z.enum(['Proposed', 'Accepted', 'Implemented'], { errorMap: () => ({ message: 'Status must be Proposed, Accepted or Implemented' }) });
@@ -29,7 +30,7 @@ export const updateRecommendationSchema = z.object({
 
 export const createMeasureSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(150),
-  category: z.enum(['lighting', 'ac_ventilation', 'motors_pumps', 'ict', 'other', 'operating_hours', 'practices'], { errorMap: () => ({ message: 'Choose a valid category' }) }),
+  category: z.enum([...CATEGORIES, 'operating_hours', 'practices'], { errorMap: () => ({ message: 'Choose a valid category' }) }),
   typicalSavingPct: z.coerce.number({ invalid_type_error: 'Saving % must be a number' }).min(0, 'Saving % must be 0 to 100').max(100, 'Saving % must be 0 to 100'),
   typicalCost: money('Typical cost'),
   description: z.string().trim().max(1000).optional().nullable(),

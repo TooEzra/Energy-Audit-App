@@ -18,7 +18,7 @@ export default function EuiComparisonChart({ items }) {
   return (
     <div className="chart-section">
       {complete.length > 0
-        ? <div className="chart-box"><Bar data={data} options={options} aria-label="EUI comparison" role="img" /></div>
+        ? <div className="chart-box" style={{ height: Math.max(240, complete.length * 28 + 60) }}><Bar data={data} options={options} aria-label="EUI comparison" role="img" /></div>
         : <p className="muted">No building has 12 months of data yet, so there is no EUI to compare.</p>}
       <ChartDataTable
         caption="Energy use intensity by building"

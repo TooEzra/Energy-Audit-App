@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-export const CATEGORIES = ['lighting', 'ac_ventilation', 'motors_pumps', 'ict', 'other'];
+// Keep in sync with migration 009 and client/src/utils/formatters.js.
+export const CATEGORIES = [
+  'lighting', 'ac_ventilation', 'motors_pumps', 'ict', 'other',
+  'refrigeration', 'water_heating', 'kitchen_catering', 'office_equipment', 'medical_lab',
+  'laundry', 'lifts', 'audio_visual', 'workshop', 'security',
+];
 const base = {
   category: z.enum(CATEGORIES, { errorMap: () => ({ message: 'Choose a valid category' }) }),
   name: z.string({ required_error: 'Name is required' }).trim().min(1, 'Name is required').max(150),

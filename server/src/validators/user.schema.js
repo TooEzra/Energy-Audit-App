@@ -21,5 +21,5 @@ export const updateInstitutionSchema = z.object({
   name: z.string().trim().min(2, 'Institution name is required').max(150).optional(),
   currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, 'Use a 3-letter currency code').optional(),
   maxBuildings: z.coerce.number({ invalid_type_error: 'Building limit must be a number' })
-    .int('Building limit must be a whole number').min(1, 'Limit must be between 1 and 50').max(50, 'Limit must be between 1 and 50').optional(),
+    .int('Building limit must be a whole number').min(1, 'Limit must be between 1 and 1000').max(1000, 'Limit must be between 1 and 1000').optional(),
 }).refine((v) => Object.keys(v).length > 0, 'Nothing to update');

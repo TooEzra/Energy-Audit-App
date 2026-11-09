@@ -4,7 +4,13 @@ import ChartDataTable from './ChartDataTable.jsx';
 import { formatMonth, formatNumber } from '../../utils/formatters.js';
 
 /** Monthly kWh of every building. monthly = { labels:['2025-01',..], series:[{name, values:[..|null]}] } */
-export default function MonthlyConsumptionChart({ monthly }) {
+const MAX_SERIES = 8; // beyond this, per-building bars are unreadable, so show the combined total instead
+
+export default function MonthlyConsumptionChart({ monthly: input }) {
+  const combined = input.series.length > MAX_SERIES;
+  const monthly = combined
+    ? { labels: input.labels, series: [{ name: `All ${input.series.length} buildings (total)`, values: input.labels.map((_, i) => input.series.reduce((sum, s) => sum + (s.values[i] || 0), 0)) }] }
+    : input;
   const labels = monthly.labels.map(formatMonth);
   const data = {
     labels,
@@ -17,6 +23,7 @@ export default function MonthlyConsumptionChart({ monthly }) {
   };
   return (
     <div className="chart-section">
+      {combined && <p className="muted small">Showing the combined total because there are more than {MAX_SERIES} buildings. Open a building's Energy Records page for its own trend.</p>}
       <div className="chart-box"><Bar data={data} options={options} aria-label="Monthly consumption by building" role="img" /></div>
       <ChartDataTable
         caption="Monthly consumption in kWh by building"

@@ -16,7 +16,7 @@ export async function registerInstitution(data) {
   const { institutionId, userId } = await institutionsRepo.register(pool, { ...data, passwordHash });
   return {
     user: { id: userId, institutionId, name: data.adminName, email: data.email, role: 'admin', mustChangePassword: false },
-    institution: { id: institutionId, name: data.institutionName, currency: data.currency, maxBuildings: 5 },
+    institution: { id: institutionId, name: data.institutionName, currency: data.currency, maxBuildings: 100 },
   };
 }
 
