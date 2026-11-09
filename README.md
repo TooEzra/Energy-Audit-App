@@ -145,7 +145,7 @@ $$
 $$
 \text{costPerKwh} =
 \begin{cases}
-\dfrac{\text{annualCost}}{\text{annualKwh}}, & \text{annualKwh} > 0 \\[6pt]
+\dfrac{\text{annualCost}}{\text{annualKwh}}, & \text{annualKwh} > 0 \\
 \text{null}, & \text{otherwise}
 \end{cases}
 $$
@@ -223,7 +223,7 @@ $$
 $$
 
 $$
-\text{anomaly}_r \iff \text{kwh}_r > \text{avgOthers}_r \,(1 + \tau)
+\text{anomaly}_r \Longleftrightarrow \text{kwh}_r > \text{avgOthers}_r \,(1 + \tau)
 $$
 
 - Default `τ = 0.30` (30%), configurable via `ANOMALY_THRESHOLD` in `.env`.
@@ -256,7 +256,7 @@ $$
 $$
 \text{sharePct}_c =
 \begin{cases}
-\dfrac{\text{categoryKwh}_c}{\text{totalKwh}} \times 100, & \text{totalKwh} > 0 \\[6pt]
+\dfrac{\text{categoryKwh}_c}{\text{totalKwh}} \times 100, & \text{totalKwh} > 0 \\
 0, & \text{otherwise}
 \end{cases}
 $$
@@ -288,13 +288,13 @@ $$
 $$
 \text{gapPct} =
 \begin{cases}
-\dfrac{\text{gapKwh}}{\text{billedKwh}} \times 100, & \text{billedKwh} > 0 \\[6pt]
+\dfrac{\text{gapKwh}}{\text{billedKwh}} \times 100, & \text{billedKwh} > 0 \\
 \text{null}, & \text{otherwise}
 \end{cases}
 $$
 
 $$
-\text{warning} \iff |\text{gapPct}| > 15
+\text{warning} \Longleftrightarrow |\text{gapPct}| > 15
 $$
 
 - `WARN_PCT = 15%`. A normal inventory covers only the audited equipment, so a modest gap is expected.
@@ -311,14 +311,14 @@ When a recommendation is pre-filled from a measure in the library, the estimated
 $$
 \text{baselineCost} =
 \begin{cases}
-\text{annualCost}, & \text{whole-building} \\[6pt]
+\text{annualCost}, & \text{whole-building} \\
 \text{annualCost} \times \dfrac{\text{endUseSharePct}}{100}, & \text{otherwise}
 \end{cases}
 $$
 
 $$
 \text{estimatedAnnualSaving} =
-\operatorname{round}\!\left(\text{baselineCost} \times \frac{\text{typicalSavingPct}}{100},\ 2\right)
+\mathrm{round}\left(\text{baselineCost} \times \frac{\text{typicalSavingPct}}{100},\ 2\right)
 $$
 
 Where:
