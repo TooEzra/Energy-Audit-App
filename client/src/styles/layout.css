@@ -1,7 +1,10 @@
 .app-shell { display: grid; grid-template-columns: var(--nav-width) 1fr; grid-template-rows: var(--topbar-height) 1fr; grid-template-areas: "top top" "nav main"; min-height: 100%; }
 .topbar { grid-area: top; position: sticky; top: 0; z-index: 20; background: var(--color-primary); color: var(--color-primary-contrast); display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-5); gap: var(--space-4); }
+.menu-btn, .nav-backdrop, .nav-account { display: none; }
+.menu-btn { background: transparent; border: 1px solid rgba(255, 255, 255, 0.6); color: var(--color-primary-contrast); border-radius: var(--radius-sm); width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center; }
+.topbar-left { min-width: 0; flex-wrap: nowrap; }
 .topbar .brand { font-weight: 700; font-size: 1.1rem; }
-.topbar .institution { background: rgba(255, 255, 255, 0.16); padding: var(--space-1) var(--space-3); border-radius: 999px; font-weight: 600; }
+.topbar .institution { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; background: rgba(255, 255, 255, 0.16); padding: var(--space-1) var(--space-3); border-radius: 999px; font-weight: 600; }
 .topbar .who { display: flex; align-items: center; gap: var(--space-3); font-size: 0.9rem; }
 /* Stays fixed under the top bar while the page content scrolls; scrolls on its own if the menu is taller than the window. */
 .sidenav { grid-area: nav; background: var(--color-primary-dark); padding: var(--space-4) 0; position: sticky; top: var(--topbar-height); align-self: start; height: calc(100vh - var(--topbar-height)); overflow-y: auto; }
@@ -15,11 +18,44 @@
 .page-header h1 { margin: 0; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: var(--space-4); }
 .auth-page { min-height: 100%; display: grid; place-items: center; padding: var(--space-5); background: var(--color-panel); }
 .auth-card { width: 100%; max-width: 440px; background: var(--color-surface); padding: var(--space-6); border-radius: var(--radius); box-shadow: var(--shadow); }
 .auth-card h1 { color: var(--color-primary); }
 @media (max-width: 1000px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .main { padding: var(--space-4); } }
+
+/* ---- Phones and small tablets ---- */
+@media (max-width: 800px) {
+  .app-shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "main"; }
+  .topbar { padding: 0 var(--space-3); gap: var(--space-2); }
+  .topbar .who { display: none; }
+  .menu-btn { display: inline-flex; flex: none; }
+  .topbar .brand { font-size: 1rem; flex: none; }
+  .topbar .institution { font-size: 0.85rem; padding: 2px var(--space-3); }
+  /* Side menu becomes a drawer under the top bar */
+  .sidenav { position: fixed; top: var(--topbar-height); left: 0; bottom: 0; height: auto; width: min(290px, 85vw); z-index: 40; transform: translateX(-100%); visibility: hidden; transition: transform 0.2s ease, visibility 0.2s; box-shadow: 2px 0 12px rgba(0, 0, 0, 0.3); }
+  .sidenav.open { transform: translateX(0); visibility: visible; }
+  .sidenav a { padding: var(--space-4) var(--space-5); }
+  .nav-backdrop { display: block; position: fixed; inset: var(--topbar-height) 0 0 0; background: rgba(10, 25, 18, 0.5); z-index: 30; }
+  .nav-account { display: block; margin-top: var(--space-4); padding-bottom: var(--space-4); border-top: 1px solid rgba(255, 255, 255, 0.2); }
+  .nav-user { color: var(--color-primary-contrast); padding: var(--space-1) var(--space-5) var(--space-3); font-size: 0.9rem; word-break: break-word; }
+  .nav-actions { padding: 0 var(--space-5); }
+  .sidenav .nav-account a.btn { display: inline-flex; padding: var(--space-1) var(--space-3); border: 1px solid rgba(255, 255, 255, 0.6); }
+  .nav-account .btn.secondary { background: transparent; color: var(--color-primary-contrast); border-color: rgba(255, 255, 255, 0.6); }
+
+  .main { padding: var(--space-4) var(--space-3); }
+  h1 { font-size: 1.35rem; }
+  .page-header { flex-direction: column; align-items: stretch; }
+  .page-header > .row, .page-header .row { width: 100%; }
+  .kpi .value { font-size: 1.4rem; }
+  .auth-page { padding: var(--space-3); align-items: start; }
+  .auth-card { padding: var(--space-5) var(--space-4); }
+}
+@media (max-width: 640px) {
+  .grid-2, .grid-3, .grid-3 > * { min-width: 0; }
+  .panel { padding: var(--space-3); }
+  .report { padding: var(--space-4); }
+}
 @media print {
   .app-shell { display: block; }
   .topbar, .sidenav { display: none; }

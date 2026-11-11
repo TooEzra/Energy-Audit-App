@@ -92,3 +92,26 @@ table.data caption { text-align: left; padding: var(--space-2) 0; font-weight: 6
   .report { box-shadow: none; padding: 0; }
   .chart-box { break-inside: avoid; }
 }
+
+/* ---- Phones ---- */
+@media (max-width: 800px) {
+  /* 16px inputs stop iOS from zooming in when a field is focused; bigger touch targets */
+  .field input, .field select, .field textarea { font-size: 16px; min-height: 44px; }
+  .btn { min-height: 40px; justify-content: center; }
+  .btn.small { min-height: 36px; }
+  .form-actions { flex-wrap: wrap; }
+  .form-actions .btn { flex: 1 1 140px; }
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs button { white-space: nowrap; padding: var(--space-2) var(--space-3); }
+  .table-wrap { -webkit-overflow-scrolling: touch; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+  .table-wrap table.data { min-width: 560px; }
+  table.data th, table.data td { padding: 6px 8px; font-size: 0.85rem; }
+  .chart-box { height: 260px; }
+  .rec-card .metrics { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
+  .finding img { max-width: 100%; height: auto; }
+  .dialog { padding: var(--space-4); }
+  .row.between { gap: var(--space-2); }
+  .kpi { padding: var(--space-3); }
+  .kpi .value { font-size: 1.3rem; }
+}
