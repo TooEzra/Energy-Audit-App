@@ -1,51 +1,42 @@
+import { getDb } from '../db/mongo.js';
+import { definedOnly } from '../db/tenantDb.js';
+
 const map = (r) => r && ({
-  id: r.id, name: r.name, email: r.email, role: r.role,
-  mustChangePassword: r.must_change_password, createdAt: r.created_at,
+  id: r._id, name: r.name, email: r.email, role: r.role, mustChangePassword: r.mustChangePassword, createdAt: r.createdAt,
 });
 
-/** Login lookup before a tenant is known: SECURITY DEFINER function, not a table read. */
-export async function authLookup(client, email) {
-  const { rows } = await client.query('SELECT * FROM auth_lookup($1)', [email]);
-  const r = rows[0];
-  return r && {
-    user: { id: r.user_id, institutionId: r.institution_id, name: r.name, email: r.email, role: r.role, mustChangePassword: r.must_change_password },
-    passwordHash: r.password_hash,
-    institution: { id: r.institution_id, name: r.institution_name, currency: r.currency, maxBuildings: r.max_buildings },
+/** Login lookup BEFORE a tenant is known: the only read that spans institutions, by (unique) e-mail. */
+export async function authLookup(email) {
+  const d = getDb();
+  const u = await d.collection('users').findOne({ email: String(email).trim().toLowerCase() });
+  if (!u) return null;
+  const i = await d.collection('institutions').findOne({ _id: u.institutionId });
+  if (!i) return null;
+  return {
+    user: { id: u._id, institutionId: u.institutionId, name: u.name, email: u.email, role: u.role, mustChangePassword: u.mustChangePassword },
+    passwordHash: u.passwordHash,
+    institution: { id: i._id, name: i.name, currency: i.currency, maxBuildings: i.maxBuildings },
   };
 }
 
 export async function list(db) {
-  const { rows } = await db.query('SELECT * FROM users ORDER BY created_at, id');
-  return rows.map(map);
+  return (await db.find('users', {}, { sort: { createdAt: 1, _id: 1 } })).map(map);
 }
 export async function getById(db, id) {
-  const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [id]);
-  return map(rows[0]);
+  return map(await db.findOne('users', { _id: id }));
 }
 export async function getHash(db, id) {
-  const { rows } = await db.query('SELECT password_hash FROM users WHERE id = $1', [id]);
-  return rows[0]?.password_hash;
+  return (await db.findOne('users', { _id: id }, { projection: { passwordHash: 1 } }))?.passwordHash;
 }
 export async function create(db, { name, email, passwordHash, role, mustChangePassword }) {
-  const { rows } = await db.query(
-    `INSERT INTO users (institution_id, name, email, password_hash, role, must_change_password)
-     VALUES (app_institution_id(), $1, lower($2), $3, $4, $5) RETURNING *`,
-    [name, email, passwordHash, role, mustChangePassword]);
-  return map(rows[0]);
+  return map(await db.insert('users', {
+    name, email: email.trim().toLowerCase(), passwordHash, role, mustChangePassword: !!mustChangePassword, createdAt: new Date(),
+  }));
 }
 export async function update(db, id, { name, role, passwordHash, mustChangePassword }) {
-  const { rows } = await db.query(
-    `UPDATE users SET name = COALESCE($2, name), role = COALESCE($3, role),
-       password_hash = COALESCE($4, password_hash), must_change_password = COALESCE($5, must_change_password)
-     WHERE id = $1 RETURNING *`,
-    [id, name ?? null, role ?? null, passwordHash ?? null, mustChangePassword ?? null]);
-  return map(rows[0]);
+  const set = definedOnly({ name, role, passwordHash, mustChangePassword });
+  if (!Object.keys(set).length) return getById(db, id);
+  return map(await db.updateOne('users', { _id: id }, set));
 }
-export async function remove(db, id) {
-  const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [id]);
-  return rowCount > 0;
-}
-export async function countAdmins(db) {
-  const { rows } = await db.query("SELECT count(*)::int AS n FROM users WHERE role = 'admin'");
-  return rows[0].n;
-}
+export const remove = (db, id) => db.deleteOne('users', { _id: id });
+export const countAdmins = (db) => db.count('users', { role: 'admin' });

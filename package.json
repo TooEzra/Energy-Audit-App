@@ -2,13 +2,13 @@
   "name": "energy-audit",
   "private": true,
   "version": "1.0.0",
-  "description": "Multi-institution energy audit app (React + Express + PostgreSQL). Root scripts only.",
+  "description": "Multi-institution energy audit app (React + Express + MongoDB). Root scripts only.",
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
     "dev": "concurrently -n server,client -c green,blue \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
     "test": "npm --prefix server test",
-    "migrate": "npm --prefix server run migrate",
-    "seed": "npm --prefix server run seed"
+    "seed": "npm --prefix server run seed",
+    "db:setup": "npm --prefix server run db:setup"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

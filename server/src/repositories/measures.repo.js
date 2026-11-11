@@ -1,21 +1,18 @@
 export const map = (r) => r && ({
-  id: r.id, name: r.name, category: r.category, typicalSavingPct: r.typical_saving_pct,
-  typicalCost: r.typical_cost, description: r.description, isSystem: r.institution_id === null,
+  id: r._id, name: r.name, category: r.category, typicalSavingPct: r.typicalSavingPct,
+  typicalCost: r.typicalCost, description: r.description ?? null, isSystem: r.institutionId === null,
 });
 
-// RLS lets the tenant read system presets (institution_id IS NULL) plus its own measures.
+// The tenant handle returns system presets (institutionId null) plus the caller's own measures; presets come first.
 export async function list(db) {
-  const { rows } = await db.query('SELECT * FROM measures_library ORDER BY (institution_id IS NULL) DESC, name');
-  return rows.map(map);
+  const rows = (await db.find('measures_library', {})).map(map);
+  return rows.sort((a, b) => Number(b.isSystem) - Number(a.isSystem) || a.name.localeCompare(b.name));
 }
 export async function getById(db, id) {
-  const { rows } = await db.query('SELECT * FROM measures_library WHERE id = $1', [id]);
-  return map(rows[0]);
+  return map(await db.findOne('measures_library', { _id: id }));
 }
 export async function create(db, m) {
-  const { rows } = await db.query(
-    `INSERT INTO measures_library (institution_id, name, category, typical_saving_pct, typical_cost, description)
-     VALUES (app_institution_id(), $1,$2,$3,$4,$5) RETURNING *`,
-    [m.name, m.category, m.typicalSavingPct, m.typicalCost, m.description || null]);
-  return map(rows[0]);
+  return map(await db.insert('measures_library', {
+    name: m.name, category: m.category, typicalSavingPct: m.typicalSavingPct, typicalCost: m.typicalCost, description: m.description || null,
+  }));
 }

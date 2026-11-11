@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt';
-import { pool } from '../db/pool.js';
 import * as institutionsRepo from '../repositories/institutions.repo.js';
 import * as usersRepo from '../repositories/users.repo.js';
 import { UnauthorizedError, ValidationError, NotFoundError } from '../utils/errors.js';
@@ -13,7 +12,7 @@ export const hashPassword = (pw) => bcrypt.hash(pw, ROUNDS);
 /** Sign-up: creates the institution and its first admin in ONE transaction (inside the SECURITY DEFINER function). */
 export async function registerInstitution(data) {
   const passwordHash = await hashPassword(data.password);
-  const { institutionId, userId } = await institutionsRepo.register(pool, { ...data, passwordHash });
+  const { institutionId, userId } = await institutionsRepo.register({ ...data, passwordHash });
   return {
     user: { id: userId, institutionId, name: data.adminName, email: data.email, role: 'admin', mustChangePassword: false },
     institution: { id: institutionId, name: data.institutionName, currency: data.currency, maxBuildings: 100 },
@@ -21,7 +20,7 @@ export async function registerInstitution(data) {
 }
 
 export async function login(email, password) {
-  const found = await usersRepo.authLookup(pool, email);
+  const found = await usersRepo.authLookup(email);
   const ok = await bcrypt.compare(password, found?.passwordHash ?? DUMMY_HASH);
   if (!found || !ok) throw new UnauthorizedError('Invalid e-mail or password');
   return { user: found.user, institution: found.institution };

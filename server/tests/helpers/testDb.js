@@ -1,25 +1,25 @@
-import pg from 'pg';
 import { env } from '../../src/config/env.js';
-import { pool as appPool, closePool } from '../../src/db/pool.js';
+import { connect, getDb, closeMongo, ensureIndexes, nextId } from '../../src/db/mongo.js';
 
-// The OWNER connection bypasses RLS (superuser): used only to reset data and to prepare fixtures in tests.
-export const ownerPool = new pg.Pool({ connectionString: env.ownerDatabaseUrl, max: 2 });
-export { appPool };
+if (!/_test$/.test(env.mongoDb)) throw new Error('Tests must use a database whose name ends in _test');
 
+/** Empty every collection (and the id counters) of the TEST database, keeping the indexes. */
 export async function resetDb() {
-  await ownerPool.query(
-    'TRUNCATE institutions, users, buildings, energy_records, equipment, findings, recommendations, measures_library RESTART IDENTITY CASCADE');
+  const db = await connect();
+  await ensureIndexes();
+  for (const c of await db.collections()) await c.deleteMany({});
 }
 
+/** Insert a system measure preset (institutionId null), bypassing the tenant facade. */
 export async function addSystemMeasure(over = {}) {
+  await connect();
   const m = { name: 'LED retrofit', category: 'lighting', pct: 50, cost: 100000, ...over };
-  const { rows } = await ownerPool.query(
-    `INSERT INTO measures_library (institution_id, name, category, typical_saving_pct, typical_cost) VALUES (NULL,$1,$2,$3,$4) RETURNING id`,
-    [m.name, m.category, m.pct, m.cost]);
-  return rows[0].id;
+  const _id = await nextId('measures_library');
+  await getDb().collection('measures_library').insertOne({
+    _id, institutionId: null, name: m.name, category: m.category, typicalSavingPct: m.pct, typicalCost: m.cost, description: null,
+  });
+  return _id;
 }
 
-export async function closeAll() {
-  await ownerPool.end();
-  await closePool();
-}
+export { getDb };
+export const closeAll = closeMongo;

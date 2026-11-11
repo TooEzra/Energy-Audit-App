@@ -5,7 +5,7 @@ import * as findingsRepo from '../repositories/findings.repo.js';
 import { absolutePhotoPath } from '../utils/files.js';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
-/** Load a building through the tenant-scoped client. Another institution's building is invisible (RLS) => 404. */
+/** Load a building through the tenant-scoped client. Another institution's building is invisible to the tenant-scoped handle => 404. */
 export async function requireBuilding(db, id) {
   if (!id) throw new NotFoundError('Building not found');
   const b = await buildingsRepo.getById(db, id);
@@ -19,8 +19,7 @@ export async function list(db) {
 }
 
 export async function create(db, data) {
-  // Lock the institution row so two concurrent requests cannot both slip under the limit.
-  const inst = await institutionsRepo.getOwn(db, { lock: true });
+  const inst = await institutionsRepo.getOwn(db);
   const n = await buildingsRepo.count(db);
   if (n >= inst.maxBuildings) {
     throw new ValidationError(`Building limit reached (${inst.maxBuildings}). An admin can raise it in Settings.`, { limit: `Maximum ${inst.maxBuildings} buildings` });

@@ -10,7 +10,7 @@ import * as auth from '../services/auth.service.js';
 const router = Router();
 const limiter = rateLimit();
 
-// Sign-up and login happen BEFORE a tenant is known (SECURITY DEFINER functions), so no tenantContext here.
+// Sign-up and login happen BEFORE a tenant is known (auth lookup / registration use the raw database), so no tenantContext here.
 router.post('/register-institution', limiter, validate(registerInstitutionSchema), asyncHandler(async (req, res) => {
   const session = await auth.registerInstitution(req.valid.body);
   setSessionCookie(res, session.user);

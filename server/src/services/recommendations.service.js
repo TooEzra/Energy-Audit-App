@@ -31,7 +31,7 @@ export async function list(db, buildingId) {
 /** Suggested title/cost/saving for a library measure; the auditor can edit everything before saving. */
 export async function prefill(db, buildingId, measureId) {
   await requireBuilding(db, buildingId);
-  const measure = await measuresRepo.getById(db, measureId); // RLS: system presets + own measures only
+  const measure = await measuresRepo.getById(db, measureId); // tenant handle: system presets + own measures only
   if (!measure) throw new NotFoundError('Measure not found');
   const analysis = await getAnalysis(db, buildingId);
   const { categories } = endUseShares(await equipmentRepo.listForBuilding(db, buildingId));

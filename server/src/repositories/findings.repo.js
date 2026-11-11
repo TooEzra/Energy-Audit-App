@@ -1,54 +1,47 @@
+import { definedOnly } from '../db/tenantDb.js';
+
 export const map = (r) => r && ({
-  id: r.id, buildingId: r.building_id, area: r.area, problem: r.problem, locationSystem: r.location_system,
-  suggestedImprovement: r.suggested_improvement, priority: r.priority, hasPhoto: !!r.photo_path, createdAt: r.created_at,
+  id: r._id, buildingId: r.buildingId, area: r.area, problem: r.problem, locationSystem: r.locationSystem ?? null,
+  suggestedImprovement: r.suggestedImprovement ?? null, priority: r.priority, hasPhoto: !!r.photoPath, createdAt: r.createdAt,
 });
 
 export async function listForBuilding(db, buildingId, area) {
-  const { rows } = await db.query(
-    `SELECT * FROM findings WHERE building_id = $1 AND ($2::text IS NULL OR area = $2) ORDER BY created_at DESC, id DESC`,
-    [buildingId, area ?? null]);
-  return rows.map(map);
+  const filter = area ? { buildingId, area } : { buildingId };
+  return (await db.find('findings', filter, { sort: { createdAt: -1, _id: -1 } })).map(map);
 }
 export async function listAll(db) {
-  const { rows } = await db.query('SELECT * FROM findings ORDER BY building_id, id');
-  return rows.map(map);
+  return (await db.find('findings', {}, { sort: { buildingId: 1, _id: 1 } })).map(map);
 }
 export async function getById(db, buildingId, id) {
-  const { rows } = await db.query('SELECT * FROM findings WHERE building_id = $1 AND id = $2', [buildingId, id]);
-  return map(rows[0]);
+  return map(await db.findOne('findings', { buildingId, _id: id }));
 }
 /** Internal: the stored relative photo path (never sent to the client). */
 export async function getPhotoPath(db, buildingId, id) {
-  const { rows } = await db.query('SELECT photo_path FROM findings WHERE building_id = $1 AND id = $2', [buildingId, id]);
-  return rows[0]?.photo_path ?? null;
+  return (await db.findOne('findings', { buildingId, _id: id }, { projection: { photoPath: 1 } }))?.photoPath ?? null;
 }
 export async function photoPathsForBuilding(db, buildingId) {
-  const { rows } = await db.query('SELECT photo_path FROM findings WHERE building_id = $1 AND photo_path IS NOT NULL', [buildingId]);
-  return rows.map((r) => r.photo_path);
+  return (await db.find('findings', { buildingId, photoPath: { $ne: null } }, { projection: { photoPath: 1 } })).map((r) => r.photoPath);
 }
 export async function create(db, buildingId, f, photoPath) {
-  const { rows } = await db.query(
-    `INSERT INTO findings (institution_id, building_id, area, problem, location_system, suggested_improvement, priority, photo_path)
-     VALUES (app_institution_id(), $1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [buildingId, f.area, f.problem, f.locationSystem || null, f.suggestedImprovement || null, f.priority, photoPath ?? null]);
-  return map(rows[0]);
+  return map(await db.insert('findings', {
+    buildingId, area: f.area, problem: f.problem, locationSystem: f.locationSystem || null,
+    suggestedImprovement: f.suggestedImprovement || null, priority: f.priority, photoPath: photoPath ?? null, createdAt: new Date(),
+  }));
 }
 /** photoPath: undefined = keep, null = remove, string = replace. */
 export async function update(db, buildingId, id, f, photoPath) {
-  const { rows } = await db.query(
-    `UPDATE findings SET area = COALESCE($3, area), problem = COALESCE($4, problem),
-       location_system = CASE WHEN $5::boolean THEN $6 ELSE location_system END,
-       suggested_improvement = CASE WHEN $7::boolean THEN $8 ELSE suggested_improvement END,
-       priority = COALESCE($9, priority),
-       photo_path = CASE WHEN $10::boolean THEN $11 ELSE photo_path END
-     WHERE building_id = $1 AND id = $2 RETURNING *`,
-    [buildingId, id, f.area ?? null, f.problem ?? null,
-      f.locationSystem !== undefined, f.locationSystem || null,
-      f.suggestedImprovement !== undefined, f.suggestedImprovement || null,
-      f.priority ?? null, photoPath !== undefined, photoPath ?? null]);
-  return map(rows[0]);
+  const set = {
+    ...definedOnly({ area: f.area, problem: f.problem, priority: f.priority }),
+    ...(f.locationSystem !== undefined && { locationSystem: f.locationSystem || null }),
+    ...(f.suggestedImprovement !== undefined && { suggestedImprovement: f.suggestedImprovement || null }),
+    ...(photoPath !== undefined && { photoPath }),
+  };
+  if (!Object.keys(set).length) return getById(db, buildingId, id);
+  return map(await db.updateOne('findings', { buildingId, _id: id }, set));
 }
 export async function remove(db, buildingId, id) {
-  const { rowCount } = await db.query('DELETE FROM findings WHERE building_id = $1 AND id = $2', [buildingId, id]);
-  return rowCount > 0;
+  const removed = await db.deleteOne('findings', { buildingId, _id: id });
+  // was ON DELETE SET NULL: recommendations that pointed at this finding keep existing without the link.
+  if (removed) await db.updateMany('recommendations', { buildingId, findingId: id }, { findingId: null });
+  return removed;
 }

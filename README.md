@@ -1,6 +1,8 @@
 # Wattcheck — Energy Analysis Engine
 
-Wattcheck is a multi-institution energy-audit decision-support tool for schools, colleges, hospitals and offices. This document describes the **analysis engine** in detail — every metric it computes and the exact formula behind it — followed by a summary of the app's features.
+Wattcheck is a multi-institution energy-audit decision-support tool for schools, colleges, hospitals and offices. This document describes the **analysis engine** in detail — every metric it computes and the exact formula behind it — followed by a summary of the app's features, how data is stored and isolated, and how to run it.
+
+**Stack:** React (Vite) + Chart.js on the front end; Node.js, Express and **MongoDB** (official `mongodb` driver) on the back end, with Zod validation, bcrypt, JWT in an httpOnly cookie, multer and Puppeteer.
 
 The engine is implemented as **pure functions** in `server/src/services/` (no database access, no I/O). Plain data in, plain data out, which keeps it easy to test and reason about.
 
@@ -10,6 +12,25 @@ The engine is implemented as **pure functions** in `server/src/services/` (no da
 | `anomaly.service.js` | Flags months that are unusually high |
 | `reconciliation.service.js` | Equipment annual kWh, end-use shares, inventory-vs-billed gap |
 | `payback.service.js` | Recommendation saving estimate and simple payback |
+
+---
+
+## Architecture at a glance
+
+The server is layered. A request only ever moves downward, and **only repositories touch MongoDB**.
+
+```mermaid
+flowchart TD
+    C[React client<br/>api/ layer = only place that calls fetch] --> RT[Express routes]
+    RT --> MW["Middleware<br/>requireAuth → requireRole → tenantContext → Zod validate"]
+    MW --> SV[Services<br/>business rules + pure analysis engine]
+    SV --> RP[Repositories<br/>the only code that queries MongoDB]
+    RP --> TD["tenantDb(institutionId)<br/>adds institutionId to every query and insert"]
+    TD --> DB[(MongoDB)]
+
+    style SV fill:#eef7f1,stroke:#1F7A4D
+    style TD fill:#fff6e5,stroke:#b7791f
+```
 
 ---
 
@@ -76,34 +97,45 @@ The engine works from three kinds of input per building:
 | **Energy records** | `month` (`YYYY-MM`), `kwh`, `cost` — one row per calendar month |
 | **Equipment** | `category`, `ratingW`, `qty`, `hoursDay`, `daysYear` |
 
+An institution can record up to **100 buildings by default** (an admin can raise the limit to 1000 in Settings), and each building can have any number of equipment lines.
+
 ```mermaid
 erDiagram
+    INSTITUTION ||--o{ USER : has
+    INSTITUTION ||--o{ BUILDING : owns
+    INSTITUTION ||--o{ MEASURE : "own measures"
     BUILDING ||--o{ ENERGY_RECORD : has
     BUILDING ||--o{ EQUIPMENT : has
+    BUILDING ||--o{ FINDING : has
     BUILDING ||--o{ RECOMMENDATION : has
+    FINDING |o--o{ RECOMMENDATION : "optional link"
+    MEASURE |o--o{ RECOMMENDATION : "optional source"
 
     BUILDING {
-        bigint id PK
-        float floor_area_m2
+        number id PK
+        number institutionId
+        number floorAreaM2
         string type
     }
     ENERGY_RECORD {
-        string month
-        float kwh
-        float cost
+        string month "YYYY-MM"
+        number kwh
+        number cost
     }
     EQUIPMENT {
         string category
-        float rating_w
-        int qty
-        float hours_day
-        int days_year
+        number ratingW
+        number qty
+        number hoursDay
+        number daysYear
     }
     RECOMMENDATION {
-        float estimated_cost
-        float estimated_annual_saving
+        number estimatedCost
+        number estimatedAnnualSaving
     }
 ```
+
+Every document carries an `institutionId` (except the institution itself); system measure presets have `institutionId: null`.
 
 ---
 
@@ -181,7 +213,7 @@ $$
 \text{totalCost} = \sum_{b} \text{annualCost}_b
 $$
 
-- The monthly chart series puts every building on a shared month axis (the last 12 months any building has data for); missing months are `null`.
+- The monthly chart series puts every building on a shared month axis (the last 12 months any building has data for); missing months are `null`. With more than 8 buildings the dashboard's monthly chart shows the combined total instead of one bar per building.
 
 ```mermaid
 flowchart LR
@@ -226,7 +258,7 @@ $$
 \text{anomaly}_r \Longleftrightarrow \text{kwh}_r > \text{avgOthers}_r \,(1 + \tau)
 $$
 
-- Default `τ = 0.30` (30%), configurable via `ANOMALY_THRESHOLD` in `.env`.
+- Default `τ = 0.30` (30%), configurable via `ANOMALY_THRESHOLD` in `server/.env`.
 - If `n < 2`, or `avgOthers ≤ 0` (no positive baseline), nothing is flagged.
 - `pctAbove` is the percentage by which the month exceeds the others' average; it is reported with each flag.
 
@@ -243,9 +275,13 @@ E_e = \frac{\text{ratingW}_e \times \text{qty}_e \times \text{hoursDay}_e \times
 \quad \left[\mathrm{kWh\,/\,year}\right]
 $$
 
-The `/1000` converts watts to kilowatts. Validation bounds: `ratingW > 0`, `qty ≥ 1` (whole), `0 ≤ hoursDay ≤ 24`, `0 ≤ daysYear ≤ 366` (whole).
+The `/1000` converts watts to kilowatts. Validation bounds: `ratingW > 0`, `qty ≥ 1` (whole), `0 ≤ hoursDay ≤ 24`, `0 ≤ daysYear ≤ 366` (whole). There is no cap on the number of equipment lines per building.
 
-**End-use shares** — equipment is grouped by category (`lighting`, `ac_ventilation`, `motors_pumps`, `ict`, `other`), then:
+**Equipment categories (15):** `lighting`, `ac_ventilation`, `motors_pumps`, `ict`, `refrigeration`, `water_heating`, `kitchen_catering`, `office_equipment`, `medical_lab`, `laundry`, `lifts`, `audio_visual`, `workshop`, `security`, `other`.
+
+The *Add equipment* form includes a **"Start from common equipment"** picker (about 100 items with indicative wattages). It only pre-fills the form; every value stays editable.
+
+**End-use shares** — equipment is grouped by category, then:
 
 $$
 \text{categoryKwh}_c = \sum_{e \in c} E_e
@@ -327,7 +363,7 @@ Where:
 - `endUseSharePct` is the measure category's share of **inventory** consumption (Section 5).
 - `wholeBuilding` is **true** when the measure category is `operating_hours` or `practices`, **or** when no equipment inventory exists for that category (`endUseSharePct = null`).
 
-`typicalSavingPct` and `typicalCost` come from the measure library. The suggested title is the measure name. Every pre-filled value is **editable** before saving and is always labelled an *estimate*.
+A measure's category can be any of the 15 equipment categories, plus `operating_hours` and `practices`. `typicalSavingPct` and `typicalCost` come from the measure library. The suggested title is the measure name. Every pre-filled value is **editable** before saving and is always labelled an *estimate* (the app never stores a recommendation as anything other than an estimate).
 
 ```mermaid
 flowchart TD
@@ -351,6 +387,8 @@ flowchart TD
 | Power factor correction | other | 5% | 300,000 |
 | Timer on water heating | other | 20% | 25,000 |
 | Staff awareness programme | practices | 5% | 15,000 |
+
+Institutions can add their own measures; these are visible only to that institution.
 
 ---
 
@@ -413,16 +451,16 @@ A building with a 1,800 m² floor area and a complete 12-month window:
 ## App features
 
 **Multi-institution, multi-tenant**
-- Each institution's data is isolated with PostgreSQL row-level security; cross-tenant records behave as if they do not exist.
-- Roles: **Admin** (full access plus users, settings and deletion) and **Auditor** (create/edit audit data). New auditors get a one-time temporary password and must change it at first login.
+- Each institution's data is isolated by a tenant-scoped database handle (see [Data storage and tenant isolation](#data-storage-and-tenant-isolation)); another institution's record behaves as if it does not exist (**404**).
+- Roles: **Admin** (full access plus users, institution settings — name, currency, building limit — and deletion) and **Auditor** (create/edit audit data). New auditors get a one-time temporary password and must change it at first login. No e-mail is sent.
 
 **Audit workflow**
-- **Buildings** — register buildings with type, floor area and operating hours.
+- **Buildings** — register buildings with type, floor area and operating hours (100 per institution by default, up to 1000).
 - **Energy records** — enter monthly kWh and cost manually or import from CSV (`month,kwh,cost`) with per-row validation and duplicate-month checks. Imports are dry-run first and only write valid rows on confirm.
 - **Dashboard** — institution-wide overview: annual consumption/cost, EUI per building, monthly trend chart, EUI comparison and flagged anomalies.
-- **Equipment inventory** — per-building equipment lines by category with automatic annual kWh and end-use share calculations.
+- **Equipment inventory** — per-building equipment lines across 15 categories, a common-equipment picker, and automatic annual kWh and end-use share calculations.
 - **Reconciliation** — billed vs. inventory comparison with a 15% tolerance warning.
-- **Audit findings** — record findings by area (lighting, AC & ventilation, motors & pumps, operating hours, practices) with priority and optional photo.
+- **Audit findings** — record findings by area (lighting, AC & ventilation, motors & pumps, operating hours, practices) with priority and an optional JPG/PNG photo (up to 5 MB).
 - **Recommendations** — pre-fill from a measure library, then edit cost/saving; automatic simple payback. Library includes system measures plus institution-specific ones.
 - **Reports** — per-building audit report with KPIs, energy summary table, EUI, monthly chart (anomalies highlighted), findings, recommendations and an editable conclusion. Export to PDF (Puppeteer) or print to PDF.
 - **Data export** — download the institution's own data as JSON or CSV.
@@ -432,21 +470,78 @@ A building with a 1,800 m² floor area and a complete 12-month window:
 
 **Security and operations**
 - JWT in an httpOnly cookie; tenant id taken only from the token, never from the URL or body.
-- Login rate limiting, Zod validation on every input, tenant-scoped file storage for finding photos and reports.
+- Login rate limiting, Zod validation on every input, tenant-scoped file storage for finding photos (`server/uploads/<institutionId>/`, served only through an authenticated route).
 - Seeded demo institutions and a Vitest/Supertest suite covering the formulas, validation, roles and cross-tenant isolation.
+
+---
+
+## Data storage and tenant isolation
+
+Data lives in **MongoDB**. Collections are created automatically; the server creates its unique indexes at start-up.
+
+| Collection | Notes |
+|---|---|
+| `institutions` | name (unique), currency, `maxBuildings` |
+| `users` | e-mail (unique, stored lower-case), role, password hash, `mustChangePassword` |
+| `buildings` | unique name per institution |
+| `energy_records` | `month` stored as `YYYY-MM`; unique per building and month |
+| `equipment`, `findings`, `recommendations` | each linked to a building |
+| `measures_library` | system presets (`institutionId: null`) plus each institution's own measures |
+| `counters` | auto-increment counters, so ids stay simple numbers |
+
+**How tenants are kept apart** (MongoDB has no row-level security, so this is enforced in code):
+
+- The institution id is read **only from the verified JWT**.
+- `tenantContext` creates `req.db = tenantDb(institutionId)`. That handle adds the institution id to **every** query (last, so a caller cannot override it) and stamps it onto every insert.
+- Only repositories use the handle, and routes → services → repositories is the only call path. System measure presets are readable by every institution but never writable.
+- Login and sign-up (no tenant yet) use small dedicated repository functions.
+- Without foreign keys, deleting a building also deletes its records, equipment, findings and recommendations in code; deleting a finding clears the link on recommendations that used it.
+- Duplicate e-mails, institution names, building names and months are rejected by unique indexes and returned as friendly **409** messages.
+- The building limit is checked just before insert (no row lock), so two simultaneous requests could, very rarely, exceed it by one.
+
+`tests/isolation` checks that one institution cannot read, change or delete another's documents, even with a forged filter.
 
 ---
 
 ## Running the app
 
+**Requirements:** Node.js 18+ and MongoDB 6+ (a local install on `mongodb://127.0.0.1:27017`, or a free MongoDB Atlas cluster). No replica set is needed.
+
 ```bash
-npm install            # root (concurrently)
-npm run install:all    # server + client
-npm run migrate        # tables, RLS policies, auth functions
-npm run seed           # measure library + demo institutions
-npm run dev            # API :4000, app :5173
+cp server/.env.example server/.env   # set JWT_SECRET and, if needed, MONGODB_URI
+npm install                          # root (concurrently)
+npm run install:all                  # server + client
+npm run db:setup                     # create indexes (the server also does this on start-up)
+npm run seed                         # measure library + demo institutions
+npm run dev                          # API :4000, app :5173
 ```
 
-Open **http://localhost:5173**. Run tests with `npm test`.
+Open **http://localhost:5173** (not port 4000; `/api` alone is not a page).
 
-See `docs/README.md` for full local setup, architecture and tenancy details.
+Key `server/.env` settings:
+
+| Variable | Purpose |
+|---|---|
+| `MONGODB_URI` | Local `mongodb://127.0.0.1:27017` or an Atlas `mongodb+srv://…` string (URL-encode special characters in the password) |
+| `MONGODB_DB` | Database name, default `energy_audit` |
+| `TEST_MONGODB_DB` | Separate database wiped by `npm test`; its name must end in `_test` |
+| `JWT_SECRET` | At least 16 characters |
+| `ANOMALY_THRESHOLD`, `LOGIN_RATE_MAX` | Business constants (defaults 0.30 and 10) |
+
+**Demo logins** (after `npm run seed`; password for all: `Demo1234!`)
+
+| Institution | Admin | Auditor |
+|---|---|---|
+| Greenfield Technical College | admin@greenfield.example | auditor@greenfield.example |
+| Lakeview Community Hospital | admin@lakeview.example | auditor@lakeview.example |
+
+Or use **Register here** on the login page to create a new institution.
+
+**Tests:** `npm test` runs the server suite (Vitest + Supertest) against the separate test database.
+
+**Troubleshooting**
+- `bad auth : authentication failed` — wrong username/password in `MONGODB_URI` (for Atlas, use the *database user's* password).
+- `Cannot connect to MongoDB` on start-up — start the MongoDB service, or check `MONGODB_URI` (Atlas also needs your IP in its network access list).
+- Login works on `localhost` but cookies fail behind HTTPS — set `COOKIE_SECURE=true` (leave `false` for plain local http).
+
+See `docs/README.md` for the full local setup notes.

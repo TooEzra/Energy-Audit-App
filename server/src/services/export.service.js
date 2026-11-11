@@ -7,7 +7,7 @@ import * as recsRepo from '../repositories/recommendations.repo.js';
 import * as measuresRepo from '../repositories/measures.repo.js';
 import { toCsv } from '../utils/csv.js';
 
-/** The caller's institution data (RLS guarantees nothing from other institutions can appear). */
+/** The caller's institution data (the tenant-scoped handle guarantees nothing from other institutions can appear). */
 export async function collect(db) {
   const [institution, buildings, energyRecords, equipment, findings, recommendations, measures] = await Promise.all([
     institutionsRepo.getOwn(db), buildingsRepo.list(db), energyRepo.listAll(db), equipmentRepo.listAll(db),

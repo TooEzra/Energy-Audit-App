@@ -1,39 +1,32 @@
+import { definedOnly } from '../db/tenantDb.js';
+
 export const map = (r) => r && ({
-  id: r.id, buildingId: r.building_id, findingId: r.finding_id, measureId: r.measure_id, title: r.title,
-  estimatedCost: r.estimated_cost, estimatedAnnualSaving: r.estimated_annual_saving, status: r.status,
-  isEstimate: r.is_estimate, createdAt: r.created_at,
+  id: r._id, buildingId: r.buildingId, findingId: r.findingId ?? null, measureId: r.measureId ?? null, title: r.title,
+  estimatedCost: r.estimatedCost, estimatedAnnualSaving: r.estimatedAnnualSaving, status: r.status,
+  isEstimate: true, createdAt: r.createdAt, // savings are ALWAYS estimates (spec rule), never stored as false
 });
 
 export async function listForBuilding(db, buildingId) {
-  const { rows } = await db.query('SELECT * FROM recommendations WHERE building_id = $1 ORDER BY created_at DESC, id DESC', [buildingId]);
-  return rows.map(map);
+  return (await db.find('recommendations', { buildingId }, { sort: { createdAt: -1, _id: -1 } })).map(map);
 }
 export async function listAll(db) {
-  const { rows } = await db.query('SELECT * FROM recommendations ORDER BY building_id, id');
-  return rows.map(map);
+  return (await db.find('recommendations', {}, { sort: { buildingId: 1, _id: 1 } })).map(map);
 }
 export async function getById(db, buildingId, id) {
-  const { rows } = await db.query('SELECT * FROM recommendations WHERE building_id = $1 AND id = $2', [buildingId, id]);
-  return map(rows[0]);
+  return map(await db.findOne('recommendations', { buildingId, _id: id }));
 }
 export async function create(db, buildingId, r) {
-  const { rows } = await db.query(
-    `INSERT INTO recommendations (institution_id, building_id, finding_id, measure_id, title, estimated_cost, estimated_annual_saving, status)
-     VALUES (app_institution_id(), $1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [buildingId, r.findingId ?? null, r.measureId ?? null, r.title, r.estimatedCost, r.estimatedAnnualSaving, r.status]);
-  return map(rows[0]);
+  return map(await db.insert('recommendations', {
+    buildingId, findingId: r.findingId ?? null, measureId: r.measureId ?? null, title: r.title,
+    estimatedCost: r.estimatedCost, estimatedAnnualSaving: r.estimatedAnnualSaving, status: r.status || 'Proposed', createdAt: new Date(),
+  }));
 }
 export async function update(db, buildingId, id, r) {
-  const { rows } = await db.query(
-    `UPDATE recommendations SET title = COALESCE($3, title), estimated_cost = COALESCE($4, estimated_cost),
-       estimated_annual_saving = COALESCE($5, estimated_annual_saving), status = COALESCE($6, status),
-       finding_id = CASE WHEN $7::boolean THEN $8 ELSE finding_id END
-     WHERE building_id = $1 AND id = $2 RETURNING *`,
-    [buildingId, id, r.title ?? null, r.estimatedCost ?? null, r.estimatedAnnualSaving ?? null, r.status ?? null,
-      r.findingId !== undefined, r.findingId ?? null]);
-  return map(rows[0]);
+  const set = {
+    ...definedOnly({ title: r.title, estimatedCost: r.estimatedCost, estimatedAnnualSaving: r.estimatedAnnualSaving, status: r.status }),
+    ...(r.findingId !== undefined && { findingId: r.findingId ?? null }),
+  };
+  if (!Object.keys(set).length) return getById(db, buildingId, id);
+  return map(await db.updateOne('recommendations', { buildingId, _id: id }, set));
 }
-export async function remove(db, buildingId, id) {
-  const { rowCount } = await db.query('DELETE FROM recommendations WHERE building_id = $1 AND id = $2', [buildingId, id]);
-  return rowCount > 0;
-}
+export const remove = (db, buildingId, id) => db.deleteOne('recommendations', { buildingId, _id: id });

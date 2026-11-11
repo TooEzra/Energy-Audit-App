@@ -1,33 +1,26 @@
-export const map = (r) => r && ({ id: r.id, name: r.name, type: r.type, floorAreaM2: r.floor_area_m2, operatingHours: r.operating_hours });
+import { definedOnly } from '../db/tenantDb.js';
+
+const COLLATION = { locale: 'en', strength: 2 }; // case-insensitive, natural ordering of names
+export const map = (r) => r && ({ id: r._id, name: r.name, type: r.type, floorAreaM2: r.floorAreaM2, operatingHours: r.operatingHours });
 
 export async function list(db) {
-  const { rows } = await db.query('SELECT * FROM buildings ORDER BY name');
-  return rows.map(map);
+  return (await db.find('buildings', {}, { sort: { name: 1 }, collation: COLLATION })).map(map);
 }
 export async function getById(db, id) {
-  const { rows } = await db.query('SELECT * FROM buildings WHERE id = $1', [id]);
-  return map(rows[0]);
+  return map(await db.findOne('buildings', { _id: id }));
 }
-export async function count(db) {
-  const { rows } = await db.query('SELECT count(*)::int AS n FROM buildings');
-  return rows[0].n;
-}
+export const count = (db) => db.count('buildings');
+
 export async function create(db, { name, type, floorAreaM2, operatingHours }) {
-  const { rows } = await db.query(
-    `INSERT INTO buildings (institution_id, name, type, floor_area_m2, operating_hours)
-     VALUES (app_institution_id(), $1, $2, $3, $4) RETURNING *`,
-    [name, type, floorAreaM2, operatingHours]);
-  return map(rows[0]);
+  return map(await db.insert('buildings', { name, type, floorAreaM2, operatingHours }));
 }
 export async function update(db, id, { name, type, floorAreaM2, operatingHours }) {
-  const { rows } = await db.query(
-    `UPDATE buildings SET name = COALESCE($2, name), type = COALESCE($3, type),
-       floor_area_m2 = COALESCE($4, floor_area_m2), operating_hours = COALESCE($5, operating_hours)
-     WHERE id = $1 RETURNING *`,
-    [id, name ?? null, type ?? null, floorAreaM2 ?? null, operatingHours ?? null]);
-  return map(rows[0]);
+  const set = definedOnly({ name, type, floorAreaM2, operatingHours });
+  if (!Object.keys(set).length) return getById(db, id);
+  return map(await db.updateOne('buildings', { _id: id }, set));
 }
+/** MongoDB has no foreign-key cascade, so the building's children are deleted here, children first. */
 export async function remove(db, id) {
-  const { rowCount } = await db.query('DELETE FROM buildings WHERE id = $1', [id]);
-  return rowCount > 0;
+  for (const c of ['energy_records', 'equipment', 'findings', 'recommendations']) await db.deleteMany(c, { buildingId: id });
+  return db.deleteOne('buildings', { _id: id });
 }

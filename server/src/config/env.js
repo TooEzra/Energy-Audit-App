@@ -1,4 +1,4 @@
-// Loads and validates environment variables once. In tests (NODE_ENV=test) the TEST_* database URLs are used.
+// Loads and validates environment variables once. In tests (NODE_ENV=test) the separate test database is used.
 import 'dotenv/config';
 import path from 'node:path';
 
@@ -18,13 +18,9 @@ export const env = {
   nodeEnv: e.NODE_ENV || 'development',
   isTest,
   port: Number(e.PORT || 4000),
-  databaseUrl: isTest
-    ? required('TEST_DATABASE_URL', 'postgres://energy_app:energy_app@localhost:5432/energy_audit_test')
-    : required('DATABASE_URL', 'postgres://energy_app:energy_app@localhost:5432/energy_audit'),
-  ownerDatabaseUrl: isTest
-    ? required('TEST_OWNER_DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/energy_audit_test')
-    : required('OWNER_DATABASE_URL', 'postgres://postgres:postgres@localhost:5432/energy_audit'),
-  appDbPassword: e.APP_DB_PASSWORD || 'energy_app',
+  mongoUri: required('MONGODB_URI', 'mongodb://127.0.0.1:27017'),
+  // Tests use their own database (never the real one): its name must end in _test.
+  mongoDb: isTest ? (e.TEST_MONGODB_DB || 'energy_audit_test') : required('MONGODB_DB', 'energy_audit'),
   jwtSecret,
   jwtExpiresHours: Number(e.JWT_EXPIRES_HOURS || 8),
   uploadDir: path.resolve(e.UPLOAD_DIR || './uploads'),
