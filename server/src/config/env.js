@@ -24,6 +24,9 @@ export const env = {
   jwtSecret,
   jwtExpiresHours: Number(e.JWT_EXPIRES_HOURS || 8),
   uploadDir: path.resolve(e.UPLOAD_DIR || './uploads'),
+  // Comma-separated list of front-end origins allowed to call the API from another domain, e.g. https://wattcheck-three.vercel.app
+  clientOrigins: (e.CLIENT_ORIGIN || '').split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean),
+  trustProxy: e.TRUST_PROXY || 'loopback',
   cookieSecure: e.COOKIE_SECURE === 'true',
   cookieSameSite: e.COOKIE_SAMESITE || 'lax',
   anomalyThreshold: Number(e.ANOMALY_THRESHOLD || 0.3),
