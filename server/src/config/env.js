@@ -14,6 +14,8 @@ function required(name, fallback) {
 const jwtSecret = required('JWT_SECRET', isTest ? 'test-secret-test-secret-test-secret' : undefined);
 if (jwtSecret.length < 16) throw new Error('JWT_SECRET must be at least 16 characters');
 
+const crossSite = (e.CLIENT_ORIGIN || '').trim() !== '';
+
 export const env = {
   nodeEnv: e.NODE_ENV || 'development',
   isTest,
@@ -27,8 +29,10 @@ export const env = {
   // Comma-separated list of front-end origins allowed to call the API from another domain, e.g. https://wattcheck-three.vercel.app
   clientOrigins: (e.CLIENT_ORIGIN || '').split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean),
   trustProxy: e.TRUST_PROXY || 'loopback',
-  cookieSecure: e.COOKIE_SECURE === 'true',
-  cookieSameSite: e.COOKIE_SAMESITE || 'lax',
+  // Front end on another domain (CLIENT_ORIGIN set): the cookie must be SameSite=None + Secure or browsers drop it.
+  // COOKIE_SECURE / COOKIE_SAMESITE can still override these defaults.
+  cookieSecure: e.COOKIE_SECURE ? e.COOKIE_SECURE === 'true' : crossSite,
+  cookieSameSite: (e.COOKIE_SAMESITE || (crossSite ? 'none' : 'lax')).trim().toLowerCase(),
   anomalyThreshold: Number(e.ANOMALY_THRESHOLD || 0.3),
   loginRateMax: Number(e.LOGIN_RATE_MAX || (isTest ? 1000 : 10)),
 };
